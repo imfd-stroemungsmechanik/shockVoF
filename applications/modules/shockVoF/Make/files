@@ -1,0 +1,10 @@
+twoPhaseMomentumTransportModel/twoPhaseMomentumTransportModel.C
+twoPhaseThermophysicalTransportModel/twoPhaseThermophysicalTransportModel.C
+
+solveEquations.C
+fluxLimiter.C
+updatePrimitives.C
+momentumPredictor.C
+shockVoF.C
+
+LIB = $(FOAM_USER_LIBBIN)/libshockVoFSolver

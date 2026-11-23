@@ -1,0 +1,108 @@
+#!/bin/bash
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Mesh resolutions of the mesh dependency study
+resolutions=(30 60 120)
+
+
+
+echo ""
+echo "============================================================"
+echo " Static droplet at resolution ${resolutions[1]}, plain HLLC"
+echo " constant curvature"
+echo "============================================================"
+
+run_dir="run_lowMach_off_constant_curvature_n${resolutions[1]}"
+
+cp -r template ${run_dir}
+
+(
+    cd ${run_dir}
+    touch para.foam
+
+    # Mesh resolution
+    foamDictionary system/blockMeshDict \
+        -entry nCells \
+        -value -set ${resolutions[1]}
+    # Low-Mach correction of the HLLC flux off
+    foamDictionary system/fvSchemes \
+        -entry fluxScheme/lowMachCorrection -value -set off
+    # Constant curvature
+    foamDictionary constant/phaseProperties \
+        -entry surfaceTension/curvatureModel -value -set constant
+    foamDictionary constant/phaseProperties \
+        -entry surfaceTension/kappa -value -set 2000
+
+    runApplication blockMesh
+    runApplication decomposePar
+    runParallel foamRun
+    runApplication reconstructPar
+)
+
+
+
+echo ""
+echo "============================================================"
+echo " Static droplet at resolution ${resolutions[1]}, plain HLLC"
+echo " smoothed curvature"
+echo "============================================================"
+
+run_dir="run_lowMach_off_smoothed_curvature_n${resolutions[1]}"
+
+cp -r template ${run_dir}
+
+(
+    cd ${run_dir}
+    touch para.foam
+
+    # Mesh resolution
+    foamDictionary system/blockMeshDict \
+        -entry nCells \
+        -value -set ${resolutions[1]}
+    # Low-Mach correction of the HLLC flux off
+    foamDictionary system/fvSchemes \
+        -entry fluxScheme/lowMachCorrection -value -set off
+
+    runApplication blockMesh
+    runApplication decomposePar
+    runParallel foamRun
+    runApplication reconstructPar
+)
+
+
+
+for n in "${resolutions[@]}"; do
+
+    run_dir="run_lowMach_on_smoothed_curvature_n${n}"
+
+    echo ""
+    echo "============================================================"
+    echo " Static droplet at resolution ${n}, low-Mach correction"
+    echo " smoothed curvature"
+    echo "============================================================"
+
+    cp -r template ${run_dir}
+
+    (
+        cd ${run_dir}
+        touch para.foam
+
+        # Mesh resolution
+        foamDictionary system/blockMeshDict \
+            -entry nCells \
+            -value -set ${n}
+
+        runApplication blockMesh
+        runApplication decomposePar
+        runParallel foamRun
+        runApplication reconstructPar
+    )
+
+done
+
+python3 validateResults.py
+
+#------------------------------------------------------------------------------

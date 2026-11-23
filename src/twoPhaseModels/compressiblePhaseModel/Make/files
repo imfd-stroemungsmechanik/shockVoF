@@ -1,0 +1,10 @@
+phaseEquationsOfState/phaseEquationOfState/phaseEquationOfState.C
+phaseEquationsOfState/phaseEquationOfState/phaseEquationOfStateNew.C
+phaseEquationsOfState/stiffenedGas/stiffenedGasEoS.C
+phaseEquationsOfState/idealGas/idealGasEoS.C
+
+phaseTransport/phaseTransport.C
+
+phaseModel/phaseModel.C
+
+LIB = $(FOAM_USER_LIBBIN)/libcompressiblePhaseModel

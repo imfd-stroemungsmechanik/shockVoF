@@ -1,0 +1,113 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  14
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      blockMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+convertToMeters 0.001;
+
+// Domain dimensions
+xMin    -96;
+xMax    96;
+yMin    -96;
+yMax    96;
+zMin    -0.5;
+zMax    0.5;
+
+// Mesh resolution
+nx      1200;
+ny      1200;
+nz      1;
+
+vertices
+(
+    ($xMin $yMin $zMin)
+    ($xMax $yMin $zMin)
+    ($xMax $yMax $zMin)
+    ($xMin $yMax $zMin)
+    ($xMin $yMin $zMax)
+    ($xMax $yMin $zMax)
+    ($xMax $yMax $zMax)
+    ($xMin $yMax $zMax)
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) ($nx $ny $nz)
+    simpleGrading
+    (
+        (
+            (0.4 0.1 0.015)
+            (0.2 0.8 1)
+            (0.4 0.1 66.666)
+        )
+        (
+            (0.4 0.1 0.015)
+            (0.2 0.8 1)
+            (0.4 0.1 66.666)
+        )
+        1
+    )
+);
+
+boundary
+(
+    inlet
+    {
+        type patch;
+        faces
+        (
+            (0 4 7 3)
+        );
+    }
+
+    outlet
+    {
+        type patch;
+        faces
+        (
+            (1 2 6 5)
+        );
+    }
+
+    bottom
+    {
+        type symmetry;
+        faces
+        (
+            (0 1 5 4)
+        );
+    }
+
+    top
+    {
+        type symmetry;
+        faces
+        (
+            (3 7 6 2)
+        );
+    }
+
+    frontAndBack
+    {
+        type empty;
+        faces
+        (
+            (0 3 2 1)
+            (4 5 6 7)
+        );
+    }
+);
+
+
+// ************************************************************************* //

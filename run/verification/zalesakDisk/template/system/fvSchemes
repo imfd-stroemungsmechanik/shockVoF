@@ -1,0 +1,68 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  14
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvSchemes;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+fluxScheme
+{
+    type                HLLC;
+}
+
+ddtSchemes
+{
+    default             Euler;
+}
+
+gradSchemes
+{
+    default             Gauss linear;
+}
+
+divSchemes
+{
+    default             Gauss linear;
+}
+
+laplacianSchemes
+{
+    default             Gauss linear orthogonal;
+}
+
+interpolationSchemes
+{
+    default             linear;
+
+    reconstruction
+    {
+        type                oneDim;
+
+        reconstruct(alpha)  vanLeer;
+        reconstruct(p)      vanLeer;
+        reconstruct(U)      vanLeerV;
+        reconstruct(rho)    vanLeer;
+
+        rhoTHINC
+        {
+            type            none;
+        }
+    }
+}
+
+snGradSchemes
+{
+    default             orthogonal;
+}
+
+
+// ************************************************************************* //

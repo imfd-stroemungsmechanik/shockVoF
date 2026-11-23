@@ -1,0 +1,135 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  14
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      functions;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+convergence
+{
+    libs     ("libutilityFunctionObjects.so");
+    type     coded;
+
+    codeInclude
+    #{
+        #include "OFstream.H"
+        #include "OSspecific.H"
+    #};
+
+    codeData
+    #{
+        autoPtr<OFstream> file;
+    #};
+
+    codeRead
+    #{
+        fileName dir
+        (
+            mesh().time().globalPath()/
+            "postProcessing"/
+            name()/
+            mesh().time().name()
+        );
+
+        mkDir(dir);
+        file = new OFstream(dir/"errors.dat");
+
+        file()<< "#time" << tab << "L1(rho)" << tab << "L1(U)" << tab << "L1(alpha)" << endl;
+    #};
+
+    codeEnd
+    #{
+        // Vortex parameters
+        const scalar gamma = 1.4;
+        const scalar Rgas = 287.0;
+        const scalar pInf = 1.0e5;
+        const scalar Tinf = 300.0;
+        const scalar uInf = 100.0;
+        const scalar vInf = 0.0;
+        const scalar vortex_strength = 100.0;
+        const scalar vortex_core_radius = 0.01;
+        const scalar vortex_center_x = 0.05;
+        const scalar vortex_center_y = 0.05;
+
+        // alpha profile parameters (must match 0/alpha.gas1)
+        const scalar alpha_bg = 0.0;
+        const scalar alpha_amp = 1.0;
+        const scalar alpha_radius = 0.02;
+
+        // Access to fields
+        const volScalarField& rho = mesh().lookupObject<volScalarField>("rho");
+        const volVectorField& U = mesh().lookupObject<volVectorField>("U");
+        const volScalarField& alpha = mesh().lookupObject<volScalarField>("alpha.gas1");
+        const scalarField& V = mesh().V();
+
+        const scalar rhoRef = pInf/(Rgas*Tinf);
+
+        // Accumulators
+        scalar Vtot = 0;
+        scalar s1Rho = 0;
+        scalar s1magU = 0;
+        scalar s1A = 0;
+
+        forAll(mesh(), celli)
+        {
+            // Analytical vortex properties
+            const scalar x  = mesh().C()[celli].x() - vortex_center_x;
+            const scalar y  = mesh().C()[celli].y() - vortex_center_y;
+            const scalar r2 = x*x + y*y;
+            const scalar E  = exp(0.5*(1.0 - r2/(vortex_core_radius*vortex_core_radius)));
+
+            const scalar dT =
+              -(gamma - 1.0)/(2.0*gamma*Rgas)
+              *vortex_strength*vortex_strength*E*E;
+
+            const scalar T_ex   = Tinf + dT;
+            const scalar ratio  = T_ex/Tinf;
+            const scalar rho_ex = rhoRef*Foam::pow(ratio, 1.0/(gamma - 1.0));
+
+            const scalar u_ex = uInf - vortex_strength*(y/vortex_core_radius)*E;
+            const scalar v_ex = vInf + vortex_strength*(x/vortex_core_radius)*E;
+            const scalar magU_ex = sqrt(sqr(u_ex) + sqr(v_ex));
+
+            // Analytical alpha: same Gaussian, translated with the vortex.
+            // After one period the center coincides with the initial one.
+            const scalar alpha_ex =
+                alpha_bg + alpha_amp*exp(-r2/(alpha_radius*alpha_radius));
+
+            const scalar Vi = V[celli];
+            Vtot += Vi;
+
+            scalar e = rho[celli] - rho_ex;
+            s1Rho += mag(e)*Vi;
+
+            e = mag(U[celli]) - magU_ex;
+            s1magU += mag(e)*Vi;
+
+            e = alpha[celli] - alpha_ex;
+            s1A += mag(e)*Vi;
+        }
+
+        // Parallel reductions
+        reduce(Vtot, sumOp<scalar>());
+        reduce(s1Rho, sumOp<scalar>());
+        reduce(s1magU, sumOp<scalar>());
+        reduce(s1A, sumOp<scalar>());
+
+        // L1 norms
+        const scalar L1Rho = s1Rho / Vtot;
+        const scalar L1magU = s1magU / Vtot;
+        const scalar L1A = s1A / Vtot;
+
+        file()<< mesh().time().value() << tab << L1Rho << tab << L1magU << tab << L1A << endl;
+    #};
+}
+
+// ************************************************************************* //

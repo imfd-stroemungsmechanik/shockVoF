@@ -1,0 +1,11 @@
+interfaceNormal/interfaceNormal.C
+
+curvatureModel/curvatureModel/curvatureModel.C
+curvatureModel/curvatureModel/curvatureModelNew.C
+curvatureModel/none/noneCurvature.C
+curvatureModel/constant/constantCurvature.C
+curvatureModel/smoothed/smoothedCurvature.C
+
+interfaceModel.C
+
+LIB = $(FOAM_USER_LIBBIN)/libinterfaceModel

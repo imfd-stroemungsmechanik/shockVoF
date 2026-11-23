@@ -1,0 +1,12 @@
+#!/bin/sh
+cd "${0%/*}" || exit                                # Run from this directory
+#------------------------------------------------------------------------------
+
+wclean src/twoPhaseModels/interfaceModel
+wclean src/twoPhaseModels/compressiblePhaseModel
+wclean src/twoPhaseModels/compressibleTwoPhaseMixture
+wclean src/fluxPredictor
+
+wclean applications/modules/shockVoF
+
+#------------------------------------------------------------------------------

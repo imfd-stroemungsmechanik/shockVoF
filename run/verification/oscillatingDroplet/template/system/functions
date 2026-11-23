@@ -1,0 +1,81 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  14
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      functions;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+kineticEnergy
+{
+    libs                ("libutilityFunctionObjects.so");
+    type                coded;
+
+    codeInclude
+    #{
+        #include "OFstream.H"
+        #include "OSspecific.H"
+        #include "Pstream.H"
+    #};
+
+    codeOptions
+    #{
+        -I$(LIB_SRC)/finiteVolume/lnInclude
+    #};
+
+    codeLibs
+    #{
+        -lfiniteVolume
+    #};
+
+    codeData
+    #{
+        autoPtr<OFstream> file;
+    #};
+
+    codeRead
+    #{
+        const fileName dir
+        (
+            mesh().time().globalPath()
+           /"postProcessing"
+           /name()
+           /mesh().time().name()
+        );
+
+        mkDir(dir);
+        file = new OFstream(dir/"kineticEnergy.dat");
+        file().precision(12);
+
+        file()<< "# time [s]" << tab << "KE [J]" << endl;
+    #};
+
+    codeWrite
+    #{
+        const volScalarField& rho = mesh().lookupObject<volScalarField>("rho");
+        const volVectorField& U   = mesh().lookupObject<volVectorField>("U");
+
+        const scalarField& V = mesh().V();
+
+        scalar KE = 0;
+
+        forAll(V, celli)
+        {
+            KE += 0.5*rho[celli]*magSqr(U[celli])*V[celli];
+        }
+        reduce(KE, sumOp<scalar>());
+
+        file()<< mesh().time().value() << tab << KE << endl;
+    #};
+}
+
+
+// ************************************************************************* //

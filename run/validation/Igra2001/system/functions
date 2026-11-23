@@ -1,0 +1,218 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  14
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      functions;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+gradRho
+{
+    type                grad;
+    libs                ("libfieldFunctionObjects.so");
+
+    field               rho;
+
+    writeControl        writeTime;
+
+    executeControl      adjustableRunTime;
+    executeInterval     1e-5;
+}
+
+minFieldValues
+{
+    type                volFieldValue;
+    libs                ("libfieldFunctionObjects.so");
+
+    writeFields         false;
+    cellZone            all;
+    log                 true;
+
+    operation           minMag;
+    fields              (T p);
+}
+
+dropletCharacteristics
+{
+    libs                ("libutilityFunctionObjects.so");
+    type                coded;
+
+    writeControl        timeStep;
+    writeInterval       1;
+
+    codeInclude
+    #{
+        #include "OFstream.H"
+        #include "OSspecific.H"
+        #include "fvc.H"
+        #include "volPointInterpolation.H"
+        #include "cutPolyIsoSurface.H"
+        #include "boundBox.H"
+    #};
+
+    codeOptions
+    #{
+        -I$(LIB_SRC)/finiteVolume/lnInclude \
+        -I$(LIB_SRC)/meshTools/lnInclude   \
+        -I$(LIB_SRC)/sampling/lnInclude
+    #};
+
+    codeLibs
+    #{
+        -lfiniteVolume \
+        -lmeshTools    \
+        -lsampling
+    #};
+
+    codeData
+    #{
+        autoPtr<OFstream> file;
+    #};
+
+    codeRead
+    #{
+        fileName dir
+        (
+            mesh().time().globalPath()/
+            "postProcessing"/
+            name()/
+            mesh().time().name()
+        );
+
+        mkDir(dir);
+        file = new OFstream(dir/"dropletCharacteristics");
+
+        file()<< "# time [s]"
+              << tab << "height [m]"
+              << tab << "centerline width [m]"
+              << tab << "leading edge [m]" << endl;
+    #};
+
+    codeWrite
+    #{
+        const volScalarField& alpha = mesh().lookupObject<volScalarField>("alpha.water");
+
+        // alpha = 0.5 iso-surface
+        const pointScalarField pAlpha
+        (
+            volPointInterpolation::New(mesh()).interpolate(alpha)
+        );
+
+        cutPolyIsoSurface iso(mesh(), pAlpha.primitiveField(), 0.5);
+
+        const pointField& isoPts   = iso.points();
+        const faceList&   isoFaces = iso.faces();
+
+        // Centerline tolerance
+        const scalar yTol = small*mesh().bounds().mag();
+
+        scalar leading_edge = great;
+        scalar trailing_edge = -great;
+        scalar yMin = great;
+        scalar yMax = -great;
+
+        // Overall y-extent
+        forAll(isoPts, i)
+        {
+            yMin = min(yMin, isoPts[i].y());
+            yMax = max(yMax, isoPts[i].y());
+        }
+
+        // Centerline width: walk edges of the iso-surface faces and pick up
+        // (a) endpoints lying on the symmetry plane, and
+        // (b) edges crossing y = 0 (handles the full-domain case too)
+        forAll(isoFaces, fi)
+        {
+            const face& f = isoFaces[fi];
+            const label nv = f.size();
+
+            forAll(f, fp)
+            {
+                const label pa = f[fp];
+                const label pb = f[(fp + 1) % nv];
+
+                const scalar ya = isoPts[pa].y();
+                const scalar yb = isoPts[pb].y();
+                const scalar xa = isoPts[pa].x();
+                const scalar xb = isoPts[pb].x();
+
+                // (a) endpoint on the centerline
+                if (mag(ya) < yTol)
+                {
+                    leading_edge = min(leading_edge, xa);
+                    trailing_edge = max(trailing_edge, xa);
+                }
+
+                // (b) edge straddles y = 0
+                if (ya*yb < 0)
+                {
+                    const scalar t      = ya/(ya - yb);
+                    const scalar xCross = xa + t*(xb - xa);
+                    leading_edge = min(leading_edge, xCross);
+                    trailing_edge = max(trailing_edge, xCross);
+                }
+            }
+        }
+
+        reduce(leading_edge, minOp<scalar>());
+        reduce(trailing_edge, maxOp<scalar>());
+        reduce(yMin, minOp<scalar>());
+        reduce(yMax, maxOp<scalar>());
+
+        const scalar width = trailing_edge - leading_edge;
+
+        // Cross-stream height
+        const scalar height = yMax - yMin;
+
+        file()<< mesh().time().userTimeValue()
+              << tab << height
+              << tab << width
+              << tab << leading_edge << endl;
+    #};
+}
+
+surfaces
+{
+    type            surfaces;
+    libs            ("libsampling.so");
+
+    writeControl    adjustableRunTime;
+    writeInterval   1e-5;
+
+    surfaceFormat   vtk;
+    writeFormat     binary;
+
+    fields
+    (
+        p
+        U
+        T
+        alpha.water
+        grad(rho)
+    );
+
+    interpolationScheme cellPoint;
+
+    surfaces
+    (
+        cutPlane
+        {
+            type        cuttingPlane;
+            interpolate false;
+
+            planeType   pointAndNormal;
+            point       (0 0 0);
+            normal      (0 0 1);
+        }
+    );
+}
+
+// ************************************************************************* //

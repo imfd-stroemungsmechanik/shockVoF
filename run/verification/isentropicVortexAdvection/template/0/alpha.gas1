@@ -1,0 +1,90 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  14
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volScalarField;
+    location    "0";
+    object      alpha.gas1;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [];
+
+// Smooth axisymmetric volume-fraction profile, centered on the vortex
+internalField   #codeStream
+{
+    codeInclude
+    #{
+      #include "volFields.H"
+    #};
+
+    codeOptions
+    #{
+        -I$(LIB_SRC)/finiteVolume/lnInclude
+    #};
+
+    code
+    #{
+        const IOdictionary& d = static_cast<const IOdictionary&>(dict);
+        const fvMesh& mesh = refCast<const fvMesh>(d.db());
+
+        // Background phase fraction
+        const scalar alpha_bg = 0.0;
+        // Peak phase fraction of the Gaussian profile
+        const scalar alpha_amp = 1.0;
+        // Gaussian profile width
+        const scalar alpha_radius = 0.02;
+
+        // Center of the Gaussian profile
+        const scalar xc = 0.05;
+        const scalar yc = 0.05;
+
+        scalarField alpha(mesh.nCells(), 0.0);
+
+        forAll(alpha, i)
+        {
+            const scalar x = mesh.C()[i].x() - xc;
+            const scalar y = mesh.C()[i].y() - yc;
+            const scalar r2 = x*x + y*y;
+
+            alpha[i] =
+                alpha_bg
+              + alpha_amp*exp(-r2/(alpha_radius*alpha_radius));
+        }
+
+        writeEntry(os, alpha);
+    #};
+};
+
+boundaryField
+{
+    left
+    {
+        type    cyclic;
+    }
+    right
+    {
+        type    cyclic;
+    }
+    bottom
+    {
+        type    cyclic;
+    }
+    top
+    {
+        type    cyclic;
+    }
+    frontAndBack
+    {
+        type    empty;
+    }
+}
+
+
+// ************************************************************************* //

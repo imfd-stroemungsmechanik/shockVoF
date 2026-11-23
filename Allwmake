@@ -1,0 +1,14 @@
+#!/bin/sh
+cd "${0%/*}" || exit                                # Run from this directory
+. "${WM_PROJECT_DIR:?}"/wmake/scripts/AllwmakeParseArguments
+
+#------------------------------------------------------------------------------
+
+wmake src/twoPhaseModels/interfaceModel
+wmake src/twoPhaseModels/compressiblePhaseModel
+wmake src/twoPhaseModels/compressibleTwoPhaseMixture
+wmake src/fluxPredictor
+
+wmake applications/modules/shockVoF
+
+# -----------------------------------------------------------------------------

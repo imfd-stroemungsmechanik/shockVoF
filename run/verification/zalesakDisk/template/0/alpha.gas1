@@ -1,0 +1,76 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  14
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volScalarField;
+    location    "0";
+    object      alpha.gas1;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [];
+
+internalField   #codeStream
+{
+    codeInclude
+    #{
+      #include "volFields.H"
+    #};
+
+    codeOptions
+    #{
+        -I$(LIB_SRC)/finiteVolume/lnInclude
+    #};
+
+    code
+    #{
+        const IOdictionary& d = static_cast<const IOdictionary&>(dict);
+        const fvMesh& mesh = refCast<const fvMesh>(d.db());
+
+        // Slotted-disk geometry
+        const scalar diskX  = 0.5;
+        const scalar diskY  = 0.75;
+        const scalar radius = 0.15;
+        const scalar slotHalfWidth = 0.025;
+        const scalar slotTop = 0.85;
+
+        scalarField alpha(mesh.nCells(), 0.0);
+
+        forAll(alpha, i)
+        {
+            const scalar x = mesh.C()[i].x();
+            const scalar y = mesh.C()[i].y();
+
+            const scalar dx = x - diskX;
+            const scalar dy = y - diskY;
+
+            const bool inDisk = (dx*dx + dy*dy <= radius*radius);
+            const bool inSlot = (mag(dx) <= slotHalfWidth) && (y <= slotTop);
+
+            alpha[i] = (inDisk && !inSlot) ? 1.0 : 0.0;
+        }
+
+        writeEntry(os, alpha);
+    #};
+};
+
+boundaryField
+{
+    outer
+    {
+        type    zeroGradient;
+    }
+    frontAndBack
+    {
+        type    empty;
+    }
+}
+
+
+// ************************************************************************* //

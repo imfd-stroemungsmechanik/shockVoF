@@ -1,0 +1,5 @@
+phaseRelaxation/phaseRelaxation.C
+
+compressibleTwoPhaseMixture.C
+
+LIB = $(FOAM_USER_LIBBIN)/libcompressibleTwoPhaseMixture

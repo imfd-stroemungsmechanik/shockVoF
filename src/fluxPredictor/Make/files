@@ -1,0 +1,16 @@
+reconstruction/reconstructionScheme/reconstructionScheme.C
+reconstruction/reconstructionScheme/reconstructionSchemeNew.C
+reconstruction/oneDim/oneDim.C
+
+reconstruction/rhoThinc/THINC/THINC.C
+reconstruction/rhoThinc/rhoThinc.C
+reconstruction/rhoThinc/rhoThincNew.C
+
+fluxSchemes/fluxScheme/fluxScheme.C
+fluxSchemes/fluxScheme/fluxSchemeNew.C
+fluxSchemes/HLLC/HLLC.C
+fluxSchemes/HLL/HLL.C
+
+fluxPredictor.C
+
+LIB = $(FOAM_USER_LIBBIN)/libfluxPredictor

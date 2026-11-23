@@ -1,0 +1,76 @@
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Mach-number sweep for the low-Mach dissipation study
+machNumbers="0.005 0.01 0.02 0.04"
+
+# Fixed physical droplet
+sigma=0.072
+R=8.333333e-5
+rhoLiq=1000
+
+# Capillary velocity and Laplace pressure jump
+uSigma=$(python3 -c "print(($sigma/($rhoLiq*$R))**0.5)")
+pLaplace=$(python3 -c "print($sigma/$R)")
+
+# Reference state (k = 1)
+cRef=155.54
+pAmbRef=172800
+pInfRef=5.324518e6
+TRef=293.15
+
+for Ma in $machNumbers; do
+
+    # Scaling factor
+    k=$(python3 -c "print(($uSigma/($Ma*$cRef))**2)")
+
+    # Ambient pressure
+    pAmb=$(python3 -c "print($k*$pAmbRef)")
+
+    # Stiffened-gas pInf of the liquid, scaling p + pInfLiq inside by k
+    pInfLiq=$(python3 -c "print($k*$pInfRef - (1 - $k)*$pLaplace)")
+
+    # Ambient temperature
+    Tamb=$(python3 -c "print($k*$TRef)")
+
+    # Both runs share the state
+    for lowMach in on off; do
+
+        run_dir="run_Ma${Ma}_${lowMach}"
+
+        echo ""
+        echo "============================================================"
+        echo " Oscillating droplet, Ma = ${Ma}, lowMach ${lowMach}"
+        echo "============================================================"
+
+        cp -r template "${run_dir}"
+        touch "${run_dir}/para.foam"
+
+        (
+            cd "${run_dir}"
+
+            # Set case up
+            foamDictionary constant/caseSetup -entry pAmb -value -set ${pAmb}
+            foamDictionary constant/caseSetup -entry pInfLiq -value -set ${pInfLiq}
+            foamDictionary constant/caseSetup -entry Tamb -value -set ${Tamb}
+
+            # Low-Mach correction of the HLLC flux
+            foamDictionary system/fvSchemes \
+                -entry fluxScheme/lowMachCorrection -value -set ${lowMach}
+
+            runApplication blockMesh
+            runApplication decomposePar
+            runParallel foamRun
+            runApplication reconstructPar
+        )
+
+    done
+
+done
+
+python3 validateResults.py
+
+#------------------------------------------------------------------------------

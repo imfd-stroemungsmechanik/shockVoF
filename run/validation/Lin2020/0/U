@@ -1,0 +1,187 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  14
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volVectorField;
+    location    "0";
+    object      U;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [velocity];
+
+internalField   uniform (517.8 0 0);
+
+boundaryField
+{
+    inlet_air
+    {
+        type            codedFixedValue;
+        value           uniform (517.8 0 0);
+        name            supersonicBLVelocity;
+
+        code
+        #{
+            // Thickness of the 1/7-power-law turbulent boundary layer
+            // on the bottom wall
+            const scalar delta = 1.5e-3;
+
+            // Gas velocity
+            const scalar u_g = 517.8;
+
+            // Face centers
+            const vectorField& Cf = patch().Cf();
+            vectorField& field = *this;
+
+            forAll(Cf, faceI)
+            {
+                const scalar y = Cf[faceI].y();
+                scalar u_local = u_g;
+
+                if (y <= small)
+                {
+                    u_local = 0.0;
+                }
+                else if (y < delta)
+                {
+                    u_local = u_g * Foam::pow(y / delta, 1.0/7.0);
+                }
+
+                field[faceI] = vector(u_local, 0.0, 0.0);
+            }
+        #};
+    }
+
+    inlet_water
+    {
+        type            codedFixedValue;
+        value           uniform (0 0 0);
+        name            inlet_water;
+
+        codeInclude
+        #{
+            #include <random>
+            #include <vector>
+            #include <cmath>
+        #};
+
+        code
+        #{
+            // Jet radius
+            const scalar R = 0.38e-3;
+            // Bulk injection velocity
+            const scalar u_bulk = 30.0;
+            // Power-law exponent
+            const scalar n = 7.0;
+            const scalar u_max = u_bulk*(n + 1.0)*(2.0*n + 1.0)/(2.0*n*n);
+
+            // Divergence-free synthetic turbulence: random-Fourier-mode
+            // method of Smirnov, Shi & Celik (2001), superimposed on the
+            // mean 1/7 power-law profile.
+            const label  nModes = 48;
+
+            // Turbulence intensity
+            const scalar turbIntensity = 0.05;
+
+            // Integral length/time scale
+            const scalar lengthScale = 0.11*2.0*R;
+            const scalar timeScale   = lengthScale/u_bulk;
+
+            // Random mode directions/frequencies, generated once
+            static std::vector<vector> pVec(nModes);
+            static std::vector<vector> qVec(nModes);
+            static std::vector<vector> kVec(nModes);
+            static std::vector<scalar> omega(nModes);
+            static bool generated = false;
+
+            if (!generated)
+            {
+                std::mt19937 gen(20200601);
+                std::normal_distribution<scalar> normal(0.0, 1.0);
+
+                for (label m = 0; m < nModes; ++m)
+                {
+                    const vector k(normal(gen), normal(gen), normal(gen));
+                    const vector zeta(normal(gen), normal(gen), normal(gen));
+                    const vector xi(normal(gen), normal(gen), normal(gen));
+
+                    const vector p = zeta ^ k;
+                    const vector q = xi ^ k;
+
+                    const scalar pMag = Foam::mag(p);
+                    const scalar qMag = Foam::mag(q);
+
+                    kVec[m] = k;
+                    pVec[m] = (pMag > small) ? p/pMag : vector(1, 0, 0);
+                    qVec[m] = (qMag > small) ? q/qMag : vector(0, 0, 1);
+                    omega[m] = normal(gen);
+                }
+
+                generated = true;
+            }
+
+            const scalar t = this->db().time().value();
+            const scalar sigma =
+                turbIntensity*u_bulk*Foam::sqrt(2.0/scalar(nModes));
+
+            // Apply: pipe centered at (x, z) = (0, 0), axis along +y
+            const vectorField& Cf = patch().Cf();
+            vectorField& field = *this;
+
+            forAll(Cf, faceI)
+            {
+                const vector  xv = Cf[faceI];
+                const scalar  r  = Foam::sqrt(xv.x()*xv.x() + xv.z()*xv.z());
+
+                scalar u_mean = 0.0;
+                vector uPrime(0, 0, 0);
+
+                if (r < R)
+                {
+                    // Mean: 1/7 power-law profile
+                    u_mean = u_max*Foam::pow(1.0 - r/R, 1.0/n);
+
+                    // Fluctuation: sum of divergence-free random modes
+                    for (label m = 0; m < nModes; ++m)
+                    {
+                        const scalar phase =
+                            (kVec[m] & xv)/lengthScale + omega[m]*t/timeScale;
+
+                        uPrime +=
+                            pVec[m]*Foam::cos(phase) + qVec[m]*Foam::sin(phase);
+                    }
+
+                    // Taper the fluctuation smoothly to zero at the jet
+                    // edge so it stays confined to the liquid core
+                    uPrime *= sigma*Foam::sqrt(1.0 - r/R);
+                }
+
+                field[faceI] = vector(uPrime.x(), u_mean + uPrime.y(), uPrime.z());
+            }
+        #};
+    }
+
+    atmosphere
+    {
+        type            zeroGradient;
+    }
+
+    walls
+    {
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+
+    frontAndBack
+    {
+        type            symmetry;
+    }
+}
+
+// ************************************************************************* //

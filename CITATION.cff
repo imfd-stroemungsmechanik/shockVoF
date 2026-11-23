@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use shockVoF in your work, please cite it using the metadata below."
+type: software
+title: "shockVoF: A density-based Volume-of-Fluid solver for compressible two-phase flows with surface tension in OpenFOAM"
+abstract: >-
+  shockVoF is a density-based Volume-of-Fluid solver module for compressible
+  two-phase flows in OpenFOAM 14. It is based on the six-equation model with
+  ideal-gas and stiffened-gas phases, instantaneous pressure relaxation and an
+  additional mixture total-energy equation, integrated with MUSCL/rho-THINC
+  reconstruction, an HLLC Riemann solver, SSP Runge-Kutta time stepping and a
+  flux-corrected-transport limiter. Its field of application is high-speed
+  atomization of liquids.
+authors:
+  - family-names: Heinrich
+    given-names: Martin
+    affiliation: "TU Bergakademie Freiberg, Institute of Mechanics and Fluid Dynamics"
+    orcid: "https://orcid.org/0000-0002-1597-1243"
+license: GPL-3.0-or-later
+repository-code: "https://github.com/imfd-stroemungsmechanik/shockVoF"
+version: "1.0.0"
+date-released: "2026-11-23"
+keywords:
+  - OpenFOAM
+  - compressible two-phase flow
+  - volume of fluid
+  - six-equation model
+  - HLLC
+  - surface tension
+  - atomization

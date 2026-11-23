@@ -1,0 +1,39 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  14
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      physicalProperties.air;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+
+equationOfState
+{
+    type        idealGas;
+    gamma       1.4;
+    Cv          717.5;
+}
+
+transport
+{
+    mu          table
+    (
+        (250      1.60e-5)
+        (293.15   1.81e-5)
+        (340      2.03e-5)
+        (381.2    2.21e-5)
+        (500      2.67e-5)
+    );
+
+    kappa       0.026;
+}
+
+// ************************************************************************* //

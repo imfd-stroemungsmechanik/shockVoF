@@ -1,0 +1,37 @@
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Mesh resolutions for the grid convergence study
+resolutions="32 64 128 256 512"
+
+for n in $resolutions; do
+
+    run_dir="run_n${n}"
+
+    echo ""
+    echo "============================================================"
+    echo " Isentropic vortex:  n = ${n}"
+    echo "============================================================"
+
+    cp -r template ${run_dir}
+
+    touch ${run_dir}/para.foam
+
+    foamDictionary ${run_dir}/system/blockMeshDict -entry nCells -value -set ${n}
+
+    (
+        cd ${run_dir}
+        runApplication blockMesh
+        runApplication decomposePar
+        runParallel foamRun
+        runApplication reconstructPar
+    )
+
+done
+
+python3 validateResults.py
+
+#------------------------------------------------------------------------------

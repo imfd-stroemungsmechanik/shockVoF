@@ -1,0 +1,126 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  14
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      functions;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+maxFieldValues
+{
+    type                volFieldValue;
+    libs                ("libfieldFunctionObjects.so");
+
+    writeFields         false;
+    cellZone            all;
+    log                 true;
+
+    operation           maxMag;
+    fields
+    (
+        p
+        U
+        T
+    );
+}
+
+minFieldValues
+{
+    type                volFieldValue;
+    libs                ("libfieldFunctionObjects.so");
+
+    writeFields         false;
+    cellZone            all;
+    log                 true;
+
+    operation           min;
+    fields
+    (
+        T
+        p
+        rho
+    );
+}
+
+fieldAverage
+{
+    type                fieldAverage;
+    libs                ("libfieldFunctionObjects.so");
+
+    writeControl        writeTime;
+
+    base                time;
+    startTime           2e-4;
+
+    mean                yes;
+    prime2Mean          no;
+
+    fields
+    (
+        alpha.water
+    );
+}
+
+yPlus
+{
+    type                yPlus;
+    libs                ("libfieldFunctionObjects.so");
+
+    writeControl        writeTime;
+}
+
+surfaces
+{
+    type            surfaces;
+    libs            ("libsampling.so");
+
+    writeControl    adjustableRunTime;
+    writeInterval   1e-5;
+
+    surfaceFormat   vtk;
+    writeFormat     binary;
+
+    fields
+    (
+        p
+        U
+        T
+        alpha.water
+        alphaMean.water
+        fluxLimiter
+    );
+
+    interpolationScheme cellPoint;
+
+    surfaces
+    (
+        isoAlpha
+        {
+            type        isoSurface;
+            interpolate true;
+
+            isoField    alpha.water;
+            isoValue    0.5;
+        }
+
+        cutPlane
+        {
+            type        cuttingPlane;
+            interpolate false;
+
+            planeType   pointAndNormal;
+            point       (0 0 1e-6);
+            normal      (0 0 1);
+        }
+    );
+}
+
+// ************************************************************************* //

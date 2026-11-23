@@ -1,0 +1,46 @@
+name: build-and-test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install OpenFOAM 14
+        run: |
+          sudo sh -c "wget -O - https://dl.openfoam.org/gpg.key > /etc/apt/trusted.gpg.d/openfoam.asc"
+          sudo add-apt-repository -y http://dl.openfoam.org/ubuntu
+          sudo apt-get update
+          sudo apt-get -y install openfoam14 python3-numpy python3-matplotlib
+
+      - name: Build shockVoF
+        run: |
+          source /opt/openfoam14/etc/bashrc
+          ./Allwmake -j
+
+      - name: Run interfaceAdvection
+        working-directory: run/verification/interfaceAdvection
+        run: |
+          source /opt/openfoam14/etc/bashrc
+          ./Allrun
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: interfaceAdvection
+          path: |
+            run/verification/interfaceAdvection/log.*
+            run/verification/interfaceAdvection/*.png
+          if-no-files-found: ignore

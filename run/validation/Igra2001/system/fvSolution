@@ -1,0 +1,35 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  14
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvSolution;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+solvers
+{}
+
+PIMPLE
+{
+    nStages     3;
+}
+
+cache
+{
+    grad(U);
+    grad(p.air);
+    grad(p.water);
+    grad(alpha.water);
+    grad(rho.air);
+    grad(rho.water);
+}
+
+// ************************************************************************* //

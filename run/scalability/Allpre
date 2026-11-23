@@ -1,0 +1,95 @@
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+
+#
+# Weak scaling
+#
+
+# Number of cells in the baseline mesh
+nCells=128
+
+# Droplet arrays to run
+arrays="1x1 2x1 2x2 4x2 4x4 8x4 8x8"
+
+mkdir weakScaling
+cd weakScaling
+
+for array in $arrays; do
+
+    a=${array%x*}
+    b=${array#*x}
+    node=$((a*b))
+
+    run_dir=$(printf "run_nodes_%02d" "$node")
+
+    cp -r ../template ${run_dir}
+
+    touch ${run_dir}/para.foam
+
+    (
+        cd ${run_dir}
+
+        # Compute number of cores
+        cpus=$((node*104))
+
+        foamDictionary system/decomposeParDict -entry numberOfSubdomains -value -set ${cpus}
+
+        # Adjust droplet array, and with it domain size and cell count
+        foamDictionary system/blockMeshDict -entry nCells -value -set ${nCells}
+        foamDictionary system/blockMeshDict -entry a -value -set ${a}
+        foamDictionary system/blockMeshDict -entry b -value -set ${b}
+
+        runApplication blockMesh
+        runApplication decomposePar
+    )
+
+done
+
+cd ..
+
+
+
+
+#
+# Strong scaling
+#
+
+# Number of cells in the mesh
+nCells=256
+
+# Number of nodes
+nodes="1 2 4 8 16 32 64"
+
+mkdir strongScaling
+cd strongScaling
+
+for node in $nodes; do
+
+    run_dir=$(printf "run_nodes_%02d" "$node")
+
+    cp -r ../template ${run_dir}
+
+    touch ${run_dir}/para.foam
+
+    (
+        cd ${run_dir}
+
+        # Compute number of cores
+        cpus=$((node*104))
+
+        foamDictionary system/decomposeParDict -entry numberOfSubdomains -value -set ${cpus}
+
+        foamDictionary system/blockMeshDict -entry nCells -value -set ${nCells}
+
+        runApplication blockMesh
+        runApplication decomposePar
+    )
+
+done
+
+
+#------------------------------------------------------------------------------

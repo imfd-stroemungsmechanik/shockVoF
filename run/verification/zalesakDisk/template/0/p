@@ -1,0 +1,94 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  14
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volScalarField;
+    location    "0";
+    object      p;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [pressure];
+
+internalField   #codeStream
+{
+    codeInclude
+    #{
+      #include "volFields.H"
+    #};
+
+    codeOptions
+    #{
+        -I$(LIB_SRC)/finiteVolume/lnInclude
+    #};
+
+    code
+    #{
+        const IOdictionary& d = static_cast<const IOdictionary&>(dict);
+        const fvMesh& mesh = refCast<const fvMesh>(d.db());
+
+        const scalar p0 = 1.0e5;
+        const scalar T0 = 300.0;
+        const scalar Rgas = 287.0;
+        const scalar omega = 50.265482;
+        const scalar xc = 0.5;
+        const scalar yc = 0.5;
+
+        scalarField p(mesh.nCells(), 0.0);
+
+        forAll(p, i)
+        {
+            const scalar x  = mesh.C()[i].x() - xc;
+            const scalar y  = mesh.C()[i].y() - yc;
+            const scalar r2 = x*x + y*y;
+
+            p[i] = p0*exp(omega*omega*r2/(2.0*Rgas*T0));
+        }
+
+        writeEntry(os, p);
+    #};
+};
+
+boundaryField
+{
+    outer
+    {
+        type            codedFixedValue;
+        value           uniform 101325;
+        name            outerBoundary;
+
+        code
+        #{
+            const scalar p0 = 1.0e5;
+            const scalar T0 = 300.0;
+            const scalar Rgas = 287.0;
+            const scalar omega = 50.265482;
+            const scalar xc = 0.5;
+            const scalar yc = 0.5;
+
+            const vectorField& Cf = patch().Cf();
+            scalarField& field = *this;
+
+            forAll(Cf, faceI)
+            {
+                const scalar x = Cf[faceI].x() - xc;
+                const scalar y = Cf[faceI].y() - yc;
+
+                field[faceI] = p0*exp(omega*omega*(x*x + y*y)/(2.0*Rgas*T0));
+            }
+        #};
+    }
+    frontAndBack
+    {
+        type            empty;
+    }
+}
+
+
+// ************************************************************************* //

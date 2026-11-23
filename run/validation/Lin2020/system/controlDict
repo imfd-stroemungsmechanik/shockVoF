@@ -1,0 +1,43 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  14
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+solver          shockVoF;
+
+startFrom       latestTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+endTime         1e-3;
+
+deltaT          1e-9;
+
+writeControl    adjustableRunTime;
+
+writeInterval   1e-4;
+
+writeCompression on;
+
+runTimeModifiable true;
+
+adjustTimeStep  on;
+
+maxCo           0.6;
+
+maxAlphaCo      0.6;
+
+// ************************************************************************* //

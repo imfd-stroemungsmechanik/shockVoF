@@ -1,0 +1,90 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  14
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volVectorField;
+    location    "0";
+    object      U;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [velocity];
+
+internalField   #codeStream
+{
+    codeInclude
+    #{
+      #include "volFields.H"
+    #};
+
+    codeOptions
+    #{
+        -I$(LIB_SRC)/finiteVolume/lnInclude
+    #};
+
+    code
+    #{
+        // Get access to mesh
+        const IOdictionary& d = static_cast<const IOdictionary&>(dict);
+        const fvMesh& mesh = refCast<const fvMesh>(d.db());
+
+        // Vortex parameters
+        const scalar uInf  = 100.0;
+        const scalar vInf  = 0.0;
+        const scalar vortex_strength = 100.0;
+        const scalar vortex_core_radius = 0.01;
+        const scalar vortex_center_x = 0.05;
+        const scalar vortex_center_y = 0.05;
+
+        vectorField U(mesh.nCells(), Zero);
+
+        forAll(U, i)
+        {
+            const scalar x  = mesh.C()[i].x() - vortex_center_x;
+            const scalar y  = mesh.C()[i].y() - vortex_center_y;
+            const scalar r2 = x*x + y*y;
+            const scalar E  = exp(0.5*(1.0 - r2/(vortex_core_radius*vortex_core_radius)));
+
+            // Solid-body-like rotation scaled by the Gaussian E
+            const scalar du = -vortex_strength * (y/vortex_core_radius) * E;
+            const scalar dv = +vortex_strength * (x/vortex_core_radius) * E;
+
+            U[i] = vector(uInf + du, vInf + dv, 0.0);
+        }
+
+        writeEntry(os, U);
+    #};
+};
+
+boundaryField
+{
+    left
+    {
+        type    cyclic;
+    }
+    right
+    {
+        type    cyclic;
+    }
+    bottom
+    {
+        type    cyclic;
+    }
+    top
+    {
+        type    cyclic;
+    }
+    frontAndBack
+    {
+        type    empty;
+    }
+}
+
+
+// ************************************************************************* //

@@ -1,0 +1,77 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  14
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      functions;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+sampleSurface
+{
+    type            surfaces;
+    libs            ("libsampling.so");
+
+    executeControl  writeTime;
+    writeControl    writeTime;
+
+    interpolationScheme cellPoint;
+    surfaceFormat   raw;
+
+    fields
+    (
+        alpha.gas1
+    );
+
+    surfaces
+    {
+        disk
+        {
+            type        cuttingPlane;
+            interpolate true;
+
+            planeType   pointAndNormal;
+            point       (0 0 0);
+            normal      (0 0 1);
+        }
+    }
+}
+
+slotProfile
+{
+    type            sets;
+    libs            ("libsampling.so");
+
+    executeControl  writeTime;
+    writeControl    writeTime;
+
+    interpolationScheme cell;
+
+    setFormat       raw;
+
+    fields
+    (
+        alpha.gas1
+    );
+
+    sets
+    {
+        slot
+        {
+            type    lineCell;
+            axis    x;
+
+            start   (0.30 0.7501 0);
+            end     (0.70 0.7501 0);
+        }
+    }
+}
+
+// ************************************************************************* //

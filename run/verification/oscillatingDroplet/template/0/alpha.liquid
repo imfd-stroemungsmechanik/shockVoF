@@ -1,0 +1,87 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  14
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volScalarField;
+    location    "0";
+    object      alpha.liquid;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [];
+
+internalField   #codeStream
+{
+    codeInclude
+    #{
+      #include "volFields.H"
+    #};
+
+    codeOptions
+    #{
+        -I$(FOAM_SRC)/finiteVolume/lnInclude
+    #};
+
+    code
+    #{
+        // Get access to mesh
+        const IOdictionary& d = static_cast<const IOdictionary&>(dict);
+        const fvMesh& mesh = refCast<const fvMesh>(d.db());
+
+        scalarField alpha(mesh.nCells());
+
+        // Unperturbed droplet radius [m]
+        const scalar R = 8.333333e-5;
+
+        // Ellipse parameters
+        const scalar a = 1.25*R;
+        const scalar b = 0.8*R;
+
+        // Interface sharpness
+        const scalar beta = 1.0;
+
+        // z-thickness
+        const boundBox& bb = mesh.bounds();
+        const scalar dz = bb.max().z() - bb.min().z();
+
+        forAll(alpha, celli)
+        {
+            const scalar x = mesh.C()[celli].x();
+            const scalar y = mesh.C()[celli].y();
+
+            // Signed distance to the ellipse from the normalized level set
+            const scalar phi = sqr(x/a) + sqr(y/b) - 1.0;
+            const scalar gradPhi = Foam::sqrt(sqr(2.0*x/sqr(a)) + sqr(2.0*y/sqr(b)));
+            const scalar dist = -phi/Foam::max(gradPhi, small);
+
+            // In-plane cell size = sqrt(dx*dy)
+            const scalar h = Foam::sqrt(mesh.V()[celli]/dz);
+
+            alpha[celli] = 0.5*(1.0 + Foam::tanh(beta*dist/h));
+        }
+
+        writeEntry(os, alpha);
+    #};
+};
+
+boundaryField
+{
+    atmosphere
+    {
+        type            fixedValue;
+        value           uniform 0;
+    }
+
+    frontAndBack
+    {
+        type            empty;
+    }
+}
+
+// ************************************************************************* //
