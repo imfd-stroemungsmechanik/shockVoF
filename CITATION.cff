@@ -19,6 +19,7 @@ license: GPL-3.0-or-later
 repository-code: "https://github.com/imfd-stroemungsmechanik/shockVoF"
 version: "1.0.0"
 date-released: "2026-11-23"
+doi: "10.5281/zenodo.24480457"
 keywords:
   - OpenFOAM
   - compressible two-phase flow

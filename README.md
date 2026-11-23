@@ -3,6 +3,7 @@
 [![build-and-test](https://github.com/imfd-stroemungsmechanik/shockVoF/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/imfd-stroemungsmechanik/shockVoF/actions/workflows/build-and-test.yml)
 [![OpenFOAM 14](https://img.shields.io/badge/OpenFOAM-14-blue.svg)](https://openfoam.org)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24480457.svg)](https://doi.org/10.5281/zenodo.24480457)
 
 <p align="center">
   <a href="https://github.com/user-attachments/assets/3b2d6b1c-579b-4847-836a-c3f1a94daaa3">
@@ -86,9 +87,9 @@ The solver `shockVoF` has the following limitations:
 
 ## Citation
 
-If you use `shockVoF` in your work, please cite it as follows (the metadata are also given in [CITATION.cff](CITATION.cff)):
+If you use `shockVoF` in your work, please cite the archived release on Zenodo:
 
-Heinrich, M. (2026). shockVoF: A density-based Volume-of-Fluid solver for compressible two-phase flows with surface tension in OpenFOAM (Version 1.0.0) [Computer software]. https://github.com/imfd-stroemungsmechanik/shockVoF
+Heinrich, M. (2026). shockVoF: A density-based Volume-of-Fluid solver for compressible two-phase flows with surface tension in OpenFOAM (Version 1.0.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.24480458
 
 ## Disclaimer
 
